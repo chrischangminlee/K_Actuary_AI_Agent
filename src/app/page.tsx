@@ -6,7 +6,7 @@ export default function Home() {
       <div className="w-full max-w-4xl relative">
         <div className="absolute top-0 right-0">
           <a
-            href="https://chrischangminlee.github.io/K_Actuary_AI_Agent_Platform/ai-tools/"
+            href="https://chrischangminlee.github.io/K_Actuary_AI_Agent_Platform/"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
