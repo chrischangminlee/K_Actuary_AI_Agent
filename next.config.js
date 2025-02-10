@@ -8,10 +8,6 @@ const nextConfig = {
   env: {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
-  // API 라우트를 정적으로 내보내지 않도록 설정
-  experimental: {
-    appDir: true,
-  },
 }
 
 module.exports = nextConfig 
