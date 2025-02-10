@@ -1,12 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Message } from '@/types/chat';
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // 초기 메시지 설정
+    setMessages([{
+      role: 'assistant',
+      content: '안녕하세요, K-Actuary AI Agent입니다. 궁금하신게 있으신가요?',
+      timestamp: new Date(),
+      status: 'sent'
+    }]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
