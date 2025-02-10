@@ -97,54 +97,55 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-[600px] bg-gray-50 rounded-lg shadow-lg relative">
-      <div className="absolute inset-0 pt-4 pb-[76px] flex flex-col">
-        <div className="flex-1 overflow-y-auto px-4">
-          <div className="space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                } mb-4`}
-              >
-                {message.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white mr-2 font-medium">
-                    AI
-                  </div>
-                )}
-                <div className="flex flex-col max-w-[70%]">
-                  <div
-                    className={`p-3 rounded-lg ${
-                      message.role === 'user'
-                        ? 'bg-green-600 text-white rounded-tr-none'
-                        : 'bg-white text-black shadow-md rounded-tl-none'
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{message.content}</p>
-                  </div>
-                  <div 
-                    className={`text-xs text-gray-500 mt-1 ${
-                      message.role === 'user' ? 'text-right' : 'text-left'
-                    }`}
-                  >
-                    {formatTime(message.timestamp)}
-                    {message.status === 'sending' && ' • 전송중...'}
-                    {message.status === 'error' && ' • 오류'}
-                  </div>
+    <div className="flex flex-col h-[calc(100vh-300px)] bg-gray-50 rounded-lg shadow-lg">
+      {/* 메시지 영역 */}
+      <div className="flex-1 overflow-y-auto px-4 pt-4">
+        <div className="space-y-4 pb-4">
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex ${
+                message.role === 'user' ? 'justify-end' : 'justify-start'
+              } mb-4`}
+            >
+              {message.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white mr-2 font-medium">
+                  AI
                 </div>
-                {message.role === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 ml-2 font-medium">
-                    나
-                  </div>
-                )}
+              )}
+              <div className="flex flex-col max-w-[70%]">
+                <div
+                  className={`p-3 rounded-lg ${
+                    message.role === 'user'
+                      ? 'bg-green-600 text-white rounded-tr-none'
+                      : 'bg-white text-black shadow-md rounded-tl-none'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{message.content}</p>
+                </div>
+                <div 
+                  className={`text-xs text-gray-500 mt-1 ${
+                    message.role === 'user' ? 'text-right' : 'text-left'
+                  }`}
+                >
+                  {formatTime(message.timestamp)}
+                  {message.status === 'sending' && ' • 전송중...'}
+                  {message.status === 'error' && ' • 오류'}
+                </div>
               </div>
-            ))}
-          </div>
+              {message.role === 'user' && (
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 ml-2 font-medium">
+                  나
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
-      <div className="absolute bottom-0 left-0 right-0">
-        <form onSubmit={handleSubmit} className="p-4 border-t bg-white rounded-b-lg">
+
+      {/* 입력창 영역 - 항상 하단에 고정 */}
+      <div className="sticky bottom-0 left-0 right-0 bg-white border-t rounded-b-lg">
+        <form onSubmit={handleSubmit} className="p-4">
           <div className="flex gap-2">
             <input
               type="text"
