@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Message } from '@/types/chat';
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
     // 초기 메시지 설정
@@ -17,6 +22,11 @@ export default function ChatInterface() {
       status: 'sent'
     }]);
   }, []);
+
+  // 메시지가 업데이트될 때마다 스크롤
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,6 +150,8 @@ export default function ChatInterface() {
               )}
             </div>
           ))}
+          {/* 스크롤 위치를 잡기 위한 더미 div */}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
