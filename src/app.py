@@ -186,9 +186,6 @@ def main():
     
     # 사이드바
     with st.sidebar:
-        st.markdown("### 가이드")
-        
-        st.markdown("---")
         st.markdown("### 소개")
         st.markdown("""
         - 본 AI 챗 서비스는 한국 계리업무를 수행하는 계리사를 위해 개발된 개인 프로젝트 기반 AI Chat / Agent입니다.
