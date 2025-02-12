@@ -146,7 +146,7 @@ def initialize_session_state():
     """세션 상태 초기화"""
     if 'messages' not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "안녕하세요, K-Actuary AI Assistant입니다. 보험계리 관련 질문이 있으시다면 말씀해주세요. 좌측 참고된 pdf의 문서를 참고하여 답변을 드립니다.}
+            {"role": "assistant", "content": "안녕하세요, K-Actuary AI Assistant입니다. 보험계리 관련 질문이 있으시다면 말씀해주세요. 좌측 참고된 pdf의 문서를 참고하여 답변을 드립니다."}
         ]
     if 'temperature' not in st.session_state:
         st.session_state.temperature = 0.7
