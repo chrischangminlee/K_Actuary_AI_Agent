@@ -10,11 +10,10 @@ load_dotenv()
 # OpenAI 클라이언트 초기화
 client = OpenAI(
     api_key=st.secrets["OPENAI_API_KEY"],
-    base_url="https://api.openai.com/v1"
+    timeout=60.0  # 타임아웃 설정 추가
 )
 
 # Pinecone 초기화
-# pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY')) - 더이상 사용안됨
 pc = Pinecone(api_key=st.secrets["PINECONE_API_KEY"])
 index = pc.Index("actuary-docs")
 
