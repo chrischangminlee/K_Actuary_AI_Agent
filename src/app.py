@@ -146,7 +146,7 @@ def initialize_session_state():
     """세션 상태 초기화"""
     if 'messages' not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "안녕하세요, K-Actuary AI Assistant입니다. 보험계리 관련 질문이 있으시다면 말씀해주세요."}
+            {"role": "assistant", "content": "안녕하세요, K-Actuary AI Assistant입니다. 보험계리 관련 질문이 있으시다면 말씀해주세요. 좌측 참고된 pdf의 문서를 참고하여 답변을 드립니다.}
         ]
     if 'temperature' not in st.session_state:
         st.session_state.temperature = 0.7
@@ -186,6 +186,9 @@ def main():
     
     # 사이드바
     with st.sidebar:
+        st.markdown("### 가이드")
+        
+        st.markdown("---")
         st.markdown("### 소개")
         st.markdown("""
         - 본 AI 챗 서비스는 한국 계리업무를 수행하는 계리사를 위해 개발된 개인 프로젝트 기반 AI Chat / Agent입니다.
