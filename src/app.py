@@ -8,10 +8,13 @@ from pinecone import Pinecone
 load_dotenv()
 
 # OpenAI 클라이언트 초기화
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# client = OpenAI(api_key=os.getenv('OPENAI_API_KEY')) - 더이상 사용안됨
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) 
 
 # Pinecone 초기화
-pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
+# pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY')) - 더이상 사용안됨
+pc = Pinecone(api_key=st.secrets["PINECONE_API_KEY"])
 index = pc.Index("actuary-docs")
 
 # 시스템 프롬프트 설정
