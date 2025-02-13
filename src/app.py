@@ -47,9 +47,27 @@ def get_relevant_context(query, top_k=5):
     )
     query_embedding = response.data[0].embedding
     
+    # 검색 결과를 문서별로 그룹화
+    doc_groups = {
+        "IFRS17보험회계해설서_2022.pdf": [],
+        "KICS 해설서.pdf": [],
+        "보험개발원_20200220_일반손보 위험조정 적용기법 고도화.pdf": [],
+        "보험개발원_202203_IFRS17 경제적 가정 실무적용방안.pdf": [],
+        "금감원_230302공동재보험 및 재보험 데이터 제공 관련 업무처리 가이드라인.pdf": [],
+        "금융위_241106_IFRS17 주요 계리가정 가이드라인.pdf": []
+    }
+    
     # KIC-S 관련 키워드 확인
     kics_keywords = ["KIC-S", "K-ICS", "KICS", "지급여력"]
+    ifrs_keywords = ["IFRS", "IFRS17", "경제적 가정", "계리가정"]
+    reinsurance_keywords = ["재보험", "공동재보험"]
+    risk_adjustment_keywords = ["위험조정", "리스크마진"]
+    
+    # 키워드 매칭을 통한 문서 우선순위 결정
     is_kics_related = any(keyword.lower() in query.lower() for keyword in kics_keywords)
+    is_ifrs_related = any(keyword.lower() in query.lower() for keyword in ifrs_keywords)
+    is_reinsurance_related = any(keyword.lower() in query.lower() for keyword in reinsurance_keywords)
+    is_risk_adjustment_related = any(keyword.lower() in query.lower() for keyword in risk_adjustment_keywords)
     
     # Pinecone 검색 - 더 많은 결과를 가져옴
     results = index.query(
@@ -63,12 +81,6 @@ def get_relevant_context(query, top_k=5):
     print(f"총 {len(results.matches)}개 결과 발견")
     print(f"KIC-S 관련 쿼리: {is_kics_related}")
     
-    # 검색 결과를 문서별로 그룹화
-    doc_groups = {
-        "IFRS17보험회계해설서_2022.pdf": [],
-        "KICS 해설서.pdf": []
-    }
-    
     for match in results.matches:
         metadata = match.metadata
         doc_key = metadata['file_name']
@@ -77,37 +89,30 @@ def get_relevant_context(query, top_k=5):
     
     # 각 문서에서 가장 관련성 높은 결과 선택
     contexts = []
+    target_counts = {
+        "KICS 해설서.pdf": 3 if is_kics_related else 1,
+        "IFRS17보험회계해설서_2022.pdf": 3 if is_ifrs_related else 1,
+        "보험개발원_20200220_일반손보 위험조정 적용기법 고도화.pdf": 3 if is_risk_adjustment_related else 1,
+        "보험개발원_202203_IFRS17 경제적 가정 실무적용방안.pdf": 3 if is_ifrs_related else 1,
+        "금감원_230302공동재보험 및 재보험 데이터 제공 관련 업무처리 가이드라인.pdf": 3 if is_reinsurance_related else 1,
+        "금융위_241106_IFRS17 주요 계리가정 가이드라인.pdf": 3 if is_ifrs_related else 1
+    }
     
-    # KIC-S 관련 쿼리인 경우 KIC-S 문서에서 더 많은 결과를 가져옴
-    if is_kics_related:
-        kics_count = 3
-        ifrs_count = 2
-    else:
-        kics_count = 2
-        ifrs_count = 3
-    
-    # KIC-S 해설서에서 결과 선택
-    kics_matches = sorted(doc_groups["KICS 해설서.pdf"], key=lambda x: x[0], reverse=True)[:kics_count]
-    for score, metadata in kics_matches:
-        if score > 0.5:  # 유사도가 일정 수준 이상인 경우만 포함
-            print(f"\n[결과] 파일: {metadata['file_name']}, 페이지: {metadata['page']}, 유사도: {score}")
-            contexts.append(
-                f"[{metadata['file_name']} - {metadata['page']}페이지]\n{metadata['text']}\n"
-            )
-    
-    # IFRS17 해설서에서 결과 선택
-    ifrs_matches = sorted(doc_groups["IFRS17보험회계해설서_2022.pdf"], key=lambda x: x[0], reverse=True)[:ifrs_count]
-    for score, metadata in ifrs_matches:
-        if score > 0.5:  # 유사도가 일정 수준 이상인 경우만 포함
-            print(f"\n[결과] 파일: {metadata['file_name']}, 페이지: {metadata['page']}, 유사도: {score}")
-            contexts.append(
-                f"[{metadata['file_name']} - {metadata['page']}페이지]\n{metadata['text']}\n"
-            )
+    # 각 문서에서 결과 선택
+    for doc_name, count in target_counts.items():
+        matches = sorted(doc_groups[doc_name], key=lambda x: x[0], reverse=True)[:count]
+        for score, metadata in matches:
+            if score > 0.5:  # 유사도가 일정 수준 이상인 경우만 포함
+                print(f"\n[결과] 파일: {metadata['file_name']}, 페이지: {metadata['page']}, 유사도: {score}")
+                contexts.append(
+                    f"[{metadata['file_name']} - {metadata['page']}페이지]\n{metadata['text']}\n"
+                )
     
     if not contexts:  # 유사도가 너무 낮아 결과가 없는 경우
         # 유사도 기준을 낮춰서 다시 시도
-        for matches in [kics_matches, ifrs_matches]:
-            for score, metadata in matches:
+        for doc_name, matches in doc_groups.items():
+            sorted_matches = sorted(matches, key=lambda x: x[0], reverse=True)[:1]
+            for score, metadata in sorted_matches:
                 print(f"\n[결과] 파일: {metadata['file_name']}, 페이지: {metadata['page']}, 유사도: {score}")
                 contexts.append(
                     f"[{metadata['file_name']} - {metadata['page']}페이지]\n{metadata['text']}\n"
@@ -193,14 +198,19 @@ def main():
         st.markdown('<p style="color: black; font-size: 12px;">- 현재 API 비용이 가장 저렴한 LLM인 gpt3.5-turbo를 사용하고 있어 기대보다 성능이 떨어질 수 있습니다.</p>', unsafe_allow_html=True)
         st.markdown('<p style="color: red; font-size: 12px;">* (주의) 본 AI가 제공하는 답변은 참고용이며, 정확성을 보장할 수 없습니다. 보안을 위해 회사 기밀, 개인정보등은 제공하지 않기를 권장드리며, 반드시 실제 업무에 적용하기 전에 검토하시길 바랍니다.</p>', unsafe_allow_html=True)
         st.markdown("---")
+        st.markdown('[개발자 Linkedin](https://www.linkedin.com/in/chrislee9407/)')
+        st.markdown('[K-계리 AI 플랫폼](https://chrischangminlee.github.io/K_Actuary_AI_Agent_Platform/)')
+        st.markdown("---")
         st.markdown("### 참고된 pdf")
         st.markdown("""
         - IFRS17보험회계해설서_2022.pdf
-        - KIC-S 해설서.pdf
+        - KICS 해설서.pdf
+        - 보험개발원_20200220_일반손보 위험조정 적용기법 고도화.pdf
+        - 보험개발원_202203_IFRS17 경제적 가정 실무적용방안.pdf
+        - 금감원_230302공동재보험 및 재보험 데이터 제공 관련 업무처리 가이드라인.pdf
+        - 금융위_241106_IFRS17 주요 계리가정 가이드라인.pdf
         """)
-        st.markdown("---")
-        st.markdown('[개발자 Linkedin](https://www.linkedin.com/in/chrislee9407/)')
-        st.markdown('[K-계리 AI 플랫폼](https://chrischangminlee.github.io/K_Actuary_AI_Agent_Platform/)')
+        
     
     # 메인 영역
     st.title("K Actuary AI Agent")

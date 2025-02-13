@@ -1,94 +1,3 @@
-# 기존 코드 주석 처리
-'''
-import os
-from dotenv import load_dotenv
-from openai import OpenAI
-from pinecone import Pinecone
-import fitz  # PyMuPDF
-
-# 환경 변수 로드
-load_dotenv()
-
-# OpenAI 클라이언트 초기화
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-
-# Pinecone 초기화
-pinecone = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
-index = pinecone.Index('actuary-docs')
-
-def process_pdf(pdf_path):
-    """PDF 파일에서 텍스트만 추출"""
-    doc = fitz.open(pdf_path)
-    content = []
-    
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        
-        # 텍스트 추출
-        text = page.get_text()
-        if text.strip():  # 빈 텍스트가 아닌 경우에만 추가
-            content.append({
-                "type": "text",
-                "content": text,
-                "page": page_num + 1
-            })
-    
-    return content
-
-def create_embeddings(content, pdf_path):
-    """컨텐츠를 임베딩하여 Pinecone에 저장"""
-    for item in content:
-        text = item["content"]
-        page = item["page"]
-        
-        # 텍스트가 너무 긴 경우 분할
-        max_length = 8000  # OpenAI API 제한
-        text_chunks = [text[i:i+max_length] for i in range(0, len(text), max_length)]
-        
-        for chunk_idx, chunk in enumerate(text_chunks):
-            try:
-                # OpenAI API로 임베딩 생성
-                response = client.embeddings.create(
-                    model="text-embedding-ada-002",
-                    input=chunk
-                )
-                embedding = response.data[0].embedding
-                
-                # Pinecone에 저장
-                index.upsert(
-                    vectors=[{
-                        "id": f"{os.path.basename(pdf_path)}-{page}-{chunk_idx}",
-                        "values": embedding,
-                        "metadata": {
-                            "text": chunk,
-                            "page": page,
-                            "source": os.path.basename(pdf_path)
-                        }
-                    }]
-                )
-                print(f"Successfully processed chunk {chunk_idx} from page {page}")
-            except Exception as e:
-                print(f"Warning: Failed to process chunk {chunk_idx} from page {page}: {e}")
-
-if __name__ == "__main__":
-    pdf_dir = "data/pdfs"
-    for pdf_file in os.listdir(pdf_dir):
-        if pdf_file.endswith(".pdf"):
-            pdf_path = os.path.join(pdf_dir, pdf_file)
-            print(f"Processing {pdf_file}...")
-            
-            try:
-                # PDF 처리
-                content = process_pdf(pdf_path)
-                
-                # 임베딩 생성 및 저장
-                create_embeddings(content, pdf_path)
-                
-                print(f"Completed processing {pdf_file}")
-            except Exception as e:
-                print(f"Error processing {pdf_file}: {e}")
-'''
-
 # 새로운 코드
 import os
 import pdfplumber
@@ -97,16 +6,29 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import hashlib
+import sys
 
+# 즉시 출력을 위한 설정
+sys.stdout.flush()
+
+print("스크립트 시작...")
+print("환경 변수 로드 중...")
 load_dotenv()  # .env 파일 로드 (OPENAI_API_KEY, PINECONE_API_KEY 등)
 
+print("API 키 확인 중...")
 # Pinecone 및 OpenAI 설정
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-PINECONE_ENV = os.getenv("PINECONE_ENVIRONMENT")  # 예: "us-west1-gcp"
+PINECONE_ENV = os.getenv("PINECONE_ENVIRONMENT")
 
+if not PINECONE_API_KEY:
+    print("오류: PINECONE_API_KEY가 설정되지 않았습니다.")
+    sys.exit(1)
+
+print("OpenAI 클라이언트 초기화 중...")
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+print("Pinecone 초기화 중...")
 # Pinecone 초기화
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index("actuary-docs")  # 이미 생성된 인덱스 사용
@@ -172,46 +94,86 @@ def embed_and_upsert(chunks: list, file_name: str):
     
     # 이미 처리된 텍스트 해시 추적
     processed_hashes = set()
+    vectors_to_upsert = []
+    batch_size = 50  # 한 번에 처리할 벡터 수
     
-    for i, ch in enumerate(chunks):
-        text = ch["text"]
-        page_num = ch["page"]
-        
-        # 텍스트 해시 생성
-        text_hash = get_text_hash(text)
-        
-        # 이미 처리된 텍스트는 건너뛰기
-        if text_hash in processed_hashes:
-            print(f"중복된 텍스트 발견 - 건너뛰기 (페이지 {page_num})")
-            continue
-        
-        processed_hashes.add(text_hash)
-        print(f"청크 {i+1}/{len(chunks)} 처리 중 (페이지 {page_num})")
-        
+    for i, ch in enumerate(chunks, 1):
         try:
+            text = ch["text"]
+            page_num = ch["page"]
+            
+            # 텍스트 해시 생성
+            text_hash = get_text_hash(text)
+            
+            # 이미 처리된 텍스트는 건너뛰기
+            if text_hash in processed_hashes:
+                print(f"중복된 텍스트 발견 - 건너뛰기 (페이지 {page_num})")
+                continue
+            
+            processed_hashes.add(text_hash)
+            print(f"청크 {i}/{len(chunks)} 처리 중 (페이지 {page_num})")
+            
             # OpenAI Embedding API 호출
-            print("OpenAI API 호출 중...")
+            print(f"OpenAI API 호출 중... (청크 {i})")
             response = client.embeddings.create(
                 model="text-embedding-ada-002",
                 input=text
             )
             embedding = response.data[0].embedding
-            print("임베딩 생성 완료")
+            print(f"임베딩 생성 완료 (청크 {i})")
             
-            # Pinecone에 upsert - 텍스트 해시를 ID에 포함
+            # 벡터 준비
             vector_id = f"{ascii_file_name}_p{page_num}_{text_hash[:16]}"
-            print("Pinecone에 업서트 중...")
-            index.upsert([
+            vectors_to_upsert.append(
                 (
                     vector_id,
                     embedding,
                     {"file_name": file_name, "page": page_num, "text": text}
                 )
-            ])
-            print("업서트 완료")
+            )
+            
+            # 배치 크기에 도달하면 업서트 실행
+            if len(vectors_to_upsert) >= batch_size:
+                print(f"\n배치 업서트 실행 중... ({len(vectors_to_upsert)}개 벡터)")
+                try:
+                    index.upsert(vectors=vectors_to_upsert)
+                    print("배치 업서트 완료")
+                    vectors_to_upsert = []  # 벡터 리스트 초기화
+                except Exception as e:
+                    print(f"배치 업서트 중 오류 발생: {str(e)}")
+                    # 실패한 경우 배치 크기를 줄여서 재시도
+                    if len(vectors_to_upsert) > 10:
+                        print("배치 크기를 줄여서 재시도합니다...")
+                        for small_batch in [vectors_to_upsert[i:i+10] for i in range(0, len(vectors_to_upsert), 10)]:
+                            try:
+                                index.upsert(vectors=small_batch)
+                                print(f"작은 배치 업서트 성공 ({len(small_batch)}개)")
+                            except Exception as e2:
+                                print(f"작은 배치 업서트 실패: {str(e2)}")
+                    vectors_to_upsert = []
+            
         except Exception as e:
-            print(f"오류 발생: {str(e)}")
-            raise
+            print(f"청크 {i} 처리 중 오류 발생: {str(e)}")
+            continue
+    
+    # 남은 벡터들 처리
+    if vectors_to_upsert:
+        print(f"\n마지막 배치 업서트 실행 중... ({len(vectors_to_upsert)}개 벡터)")
+        try:
+            index.upsert(vectors=vectors_to_upsert)
+            print("마지막 배치 업서트 완료")
+        except Exception as e:
+            print(f"마지막 배치 업서트 중 오류 발생: {str(e)}")
+            # 실패한 경우 배치 크기를 줄여서 재시도
+            print("배치 크기를 줄여서 재시도합니다...")
+            for small_batch in [vectors_to_upsert[i:i+10] for i in range(0, len(vectors_to_upsert), 10)]:
+                try:
+                    index.upsert(vectors=small_batch)
+                    print(f"작은 배치 업서트 성공 ({len(small_batch)}개)")
+                except Exception as e2:
+                    print(f"작은 배치 업서트 실패: {str(e2)}")
+    
+    print("모든 벡터 업서트 완료")
 
 def ingest_pdf(pdf_file_path: str):
     """
@@ -238,8 +200,41 @@ def ingest_pdf(pdf_file_path: str):
         raise
 
 if __name__ == "__main__":
+    print("\n=== PDF 처리 시작 ===")
     # 필요에 따라 여러 pdf ingest
     pdf_dir = "data/pdfs"
-    ingest_pdf(os.path.join(pdf_dir, "IFRS17보험회계해설서_2022.pdf"))
-    ingest_pdf(os.path.join(pdf_dir, "KICS 해설서.pdf"))
-    print("모든 PDF Ingest 완료!") 
+    
+    # 모든 PDF 파일 처리
+    pdf_files = [
+        "IFRS17보험회계해설서_2022.pdf",
+        "KICS 해설서.pdf",
+        "보험개발원_20200220_일반손보 위험조정 적용기법 고도화.pdf",
+        "보험개발원_202203_IFRS17 경제적 가정 실무적용방안.pdf",
+        "금감원_230302공동재보험 및 재보험 데이터 제공 관련 업무처리 가이드라인.pdf",
+        "금융위_241106_IFRS17 주요 계리가정 가이드라인.pdf"
+    ]
+    
+    print(f"\n처리할 PDF 파일 목록:")
+    for i, pdf_file in enumerate(pdf_files, 1):
+        print(f"{i}. {pdf_file}")
+    
+    for pdf_file in pdf_files:
+        try:
+            print(f"\n=== {pdf_file} 처리 시작 ===")
+            pdf_path = os.path.join(pdf_dir, pdf_file)
+            
+            # 파일 존재 여부 확인
+            if not os.path.exists(pdf_path):
+                print(f"오류: {pdf_file} 파일을 찾을 수 없습니다!")
+                continue
+                
+            print(f"파일 크기: {os.path.getsize(pdf_path) / (1024*1024):.2f} MB")
+            ingest_pdf(os.path.join(pdf_dir, pdf_file))
+            print(f"=== {pdf_file} 처리 완료 ===")
+        except Exception as e:
+            print(f"!!! {pdf_file} 처리 중 오류 발생: {str(e)} !!!")
+            print("스택 트레이스:")
+            import traceback
+            print(traceback.format_exc())
+    
+    print("\n모든 PDF 처리가 완료되었습니다!") 
