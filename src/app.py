@@ -200,7 +200,7 @@ def main():
         st.markdown("---")
         st.markdown('[개발자 Linkedin](https://www.linkedin.com/in/chrislee9407/)')
         st.markdown('[K-계리 AI 플랫폼](https://chrischangminlee.github.io/K_Actuary_AI_Agent_Platform/)')
-        
+        st.markdown("---")
         # 이미지 표시
         try:
             st.markdown("### 챗봇 개발 구조도")
