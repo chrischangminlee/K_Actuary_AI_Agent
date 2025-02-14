@@ -204,7 +204,7 @@ def main():
         # 이미지 표시
         try:
             st.markdown("### 챗봇 개발 구조도")
-            st.image("KActuaryAgentStructure_021425.png", use_column_width=True, caption="클릭하여 크게 보기")
+            st.image("KActuaryAgentStructure_021425.png", use_column_width=True, caption="우측 확대 버튼 클릭하여 크게 보기")
         except Exception as e:
             st.warning("구조도 이미지를 불러올 수 없습니다.")
         
