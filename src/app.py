@@ -201,10 +201,9 @@ def main():
         st.markdown('[개발자 Linkedin](https://www.linkedin.com/in/chrislee9407/)')
         st.markdown('[K-계리 AI 플랫폼](https://chrischangminlee.github.io/K_Actuary_AI_Agent_Platform/)')
         
-        # 이미지 표시
+        # 이미지 링크
         if os.path.exists("KActuaryAgentStructure_021425.png"):
-            st.markdown('<a href="KActuaryAgentStructure_021425.png" target="_blank">챗봇 개발 구조도</a>', unsafe_allow_html=True)
-            st.image("KActuaryAgentStructure_021425.png", caption="챗봇 개발 구조도", use_column_width=True)
+            st.markdown('[챗봇 개발 구조도](KActuaryAgentStructure_021425.png)')
         
         st.markdown("---")
         st.markdown("### 참고된 pdf")
