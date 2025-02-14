@@ -202,13 +202,11 @@ def main():
         st.markdown('[K-계리 AI 플랫폼](https://chrischangminlee.github.io/K_Actuary_AI_Agent_Platform/)')
         
         # 이미지 표시
-        st.markdown("챗봇 개발 구조도")
-        st.markdown(
-            '<a href="https://raw.githubusercontent.com/ChrisChangminkLee/K_Actuary_AI_Agent_Platform/main/KActuaryAgentStructure_021425.png" target="_blank">'
-            '<img src="https://raw.githubusercontent.com/ChrisChangminkLee/K_Actuary_AI_Agent_Platform/main/KActuaryAgentStructure_021425.png" width="100%">'
-            '</a>',
-            unsafe_allow_html=True
-        )
+        try:
+            st.markdown("### 챗봇 개발 구조도")
+            st.image("KActuaryAgentStructure_021425.png", use_column_width=True, caption="클릭하여 크게 보기")
+        except Exception as e:
+            st.warning("구조도 이미지를 불러올 수 없습니다.")
         
         st.markdown("---")
         st.markdown("### 참고된 pdf")
